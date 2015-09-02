@@ -3,6 +3,7 @@ var validator = require('ftp-validate-response')
 var FTP = require('../')
 var FtpFeat = require('../extension/feat')
 var FtpUser = require('../extension/user')
+var getListFromResponse = require('./helpers/get-list-from-response')
 
 // Based on RFC 959 and RFC 5797
 
@@ -19,10 +20,10 @@ test('FEAT command response is valid', function(t) {
 		var parsed = /^(\d{3}) (.+)\r\n/.exec(output)
 		var number = parseInt(parsed[1], 10)
 		var validResponseCodes = [ 230, 530 ]
-		t.ok(validResponseCodes.indexOf(number) >= 0, 'RFC 959/5797 expects one of these server response codes')
+		t.notEqual(validResponseCodes.indexOf(number), -1, 'RFC 959/5797 expects one of these server response codes')
 
 		if (number === 230) {
-			var commands = getListOfFeatures(output)
+			var commands = getListFromResponse(output)
 			var requiredCommandsAreInResponse = commandsRequiredInAllFeatResponses.every(function(command) {
 				return commands.any(function(responseCommand) {
 					return responseCommand.indexOf(command) === 0
@@ -33,14 +34,3 @@ test('FEAT command response is valid', function(t) {
 		t.end()
 	})
 })
-
-function getListOfFeatures(string) {
-	var lines = string.split('\r\n')
-	// the first and last lines are ignored
-	// TODO: check if this is an RFC spec, because everybody does it
-	return lines.slice(1, lines.length - 2).map(function(line) {
-		// Although not required in any RFC I have read, most implementations
-		// insert whitespace before the command.
-		return line.trim()
-	})
-}
